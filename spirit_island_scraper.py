@@ -3,10 +3,10 @@ import random
 import requests
 from bs4 import BeautifulSoup
 from typing import List, Dict
-from event_cards_data import get_event_cards  # your existing static data
+from event_cards_data import get_event_cards  # your static card data
 
 # ----------------------
-# Streamlit page config
+# Page config
 # ----------------------
 st.set_page_config(
     page_title="Spirit Island Event Cards",
@@ -55,16 +55,11 @@ class EventDeck:
         }
 
 # ----------------------
-# Image fetching with caching
+# Fetch card image from wiki
 # ----------------------
 @st.cache_data(show_spinner=False)
-def fetch_card_image(wiki_url: str, card_name: str) -> str:
-    """Fetch image URL from wiki and return full https URL"""
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                      "AppleWebKit/537.36 (KHTML, like Gecko) "
-                      "Chrome/140.0.0.0 Safari/537.36"
-    }
+def fetch_card_image(wiki_url: str) -> str:
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
     try:
         r = requests.get(wiki_url, headers=headers, timeout=5)
         r.raise_for_status()
@@ -74,6 +69,7 @@ def fetch_card_image(wiki_url: str, card_name: str) -> str:
             img_tag = div.find("img")
             if img_tag:
                 src = img_tag.get("src")
+                # Make full HTTPS URL
                 if src.startswith("//"):
                     return "https:" + src
                 elif src.startswith("/"):
@@ -81,18 +77,19 @@ def fetch_card_image(wiki_url: str, card_name: str) -> str:
                 else:
                     return src
     except Exception as e:
-        st.warning(f"Failed to fetch image for {card_name}: {e}")
+        st.warning(f"Failed to fetch image from {wiki_url}: {e}")
     return None
 
 # ----------------------
-# Initialize shared deck
+# Load shared deck with images
 # ----------------------
 @st.cache_resource
 def get_shared_deck():
-    cards = [card for card in get_event_cards() if card['status'] == 'Active']
+    cards = [c for c in get_event_cards() if c['status'] == 'Active']
+    # Fetch images for all cards
     for card in cards:
         if not card.get("image"):
-            card["image"] = fetch_card_image(card["url"], card["name"])
+            card["image"] = fetch_card_image(card["url"])
     deck = EventDeck(cards)
     deck.shuffle()
     return deck
@@ -106,9 +103,7 @@ st.title("🌿 Spirit Island Event Card Deck")
 st.markdown("Draw and manage event cards from the official Spirit Island deck")
 st.markdown("---")
 
-# ----------------------
-# Draw button (main area)
-# ----------------------
+# Draw button
 if st.button("🎴 Draw Card"):
     card = deck.draw_card()
     if card:
@@ -116,18 +111,14 @@ if st.button("🎴 Draw Card"):
     else:
         st.error("No cards left!")
 
-# ----------------------
 # Deck stats
-# ----------------------
 stats = deck.get_stats()
 st.markdown("### 📊 Deck Statistics")
 st.metric("Cards in Deck", stats["cards_in_deck"])
 st.metric("Cards Discarded", stats["cards_discarded"])
 st.metric("Total Cards", stats["total_cards"])
 
-# ----------------------
 # Show most recent card
-# ----------------------
 if deck.discard_pile:
     card = deck.discard_pile[-1]
     st.markdown(f"## {card['name']}")
@@ -136,7 +127,6 @@ if deck.discard_pile:
     else:
         st.info("No image available for this card")
 
-    # Additional info
     st.write(f"**Box:** {card['box']}")
     st.write(f"**Status:** {card['status']}")
     if card.get("replacement"):
@@ -145,18 +135,16 @@ if deck.discard_pile:
 else:
     st.info("Draw a card to see it here!")
 
-# ----------------------
-# Recent cards list
-# ----------------------
+# Recent cards
 if len(deck.discard_pile) > 1:
     st.markdown("### 📋 Recent Cards")
-    recent_cards = deck.discard_pile[-5:-1]  # last 4 excluding most recent
+    recent_cards = deck.discard_pile[-5:-1]
     for c in reversed(recent_cards):
         st.write(f"• {c['name']} ({c['box']})")
+        if c.get("image"):
+            st.image(c["image"], width=120)
 
-# ----------------------
-# Reset deck button
-# ----------------------
+# Reset deck
 if st.button("🔄 Reset Deck"):
     deck.reset_deck()
     st.success("Deck reset!")
