@@ -112,7 +112,8 @@ def main():
             st.markdown(f"### all deets: {card}")
             if card.get('image'):
                 st.image(card['image'], use_column_width=True)
-            st.image(card['image'], use_column_width=True)
+            else:
+                st.info("No image available for this card.")
             info_col1, info_col2 = st.columns(2)
             with info_col1:
                 st.markdown(f"**Box:** {card['box']}")
