@@ -1,5 +1,6 @@
 import streamlit as st
 import random
+import time
 from typing import List, Dict
 from event_cards_data import get_event_cards
 
@@ -53,10 +54,9 @@ class EventDeck:
             "total_cards": len(self.original_cards)
         }
 
-# --- Shared Deck for All Users ---
+# --- Shared Deck (cached across users) ---
 @st.cache_resource
 def get_shared_deck():
-    """Create one shared EventDeck instance for all users"""
     cards = [card for card in get_event_cards() if card['status'] == 'Active']
     deck = EventDeck(cards)
     deck.shuffle()
@@ -64,7 +64,7 @@ def get_shared_deck():
 
 # --- Main App ---
 def main():
-    st.title("🌿 Spirit Island Event Deck (with Images)")
+    st.title("🌿 Spirit Island Event Deck (Shared)")
     st.markdown("Draw and manage shared event cards from the official Spirit Island deck.")
     st.markdown("---")
 
@@ -72,7 +72,6 @@ def main():
 
     # --- Sidebar Controls ---
     st.sidebar.header("🎮 Deck Controls")
-
     if st.sidebar.button("🔀 Shuffle Deck", use_container_width=True):
         deck.shuffle()
         st.sidebar.success("Deck shuffled!")
@@ -89,7 +88,14 @@ def main():
     st.sidebar.metric("Cards Discarded", stats["cards_discarded"])
     st.sidebar.metric("Total Cards", stats["total_cards"])
 
-    # Main Content
+    # --- Auto-refresh every 5 seconds ---
+    REFRESH_INTERVAL = 5
+    last_refresh = st.session_state.get("last_refresh", 0)
+    if time.time() - last_refresh > REFRESH_INTERVAL:
+        st.session_state["last_refresh"] = time.time()
+        st.experimental_rerun()
+
+    # --- Main Content ---
     col1, col2 = st.columns([2, 1])
 
     with col1:
@@ -101,7 +107,7 @@ def main():
             if card:
                 deck.discard_current_card()
                 st.success(f"Drew and discarded: {card['name']}")
-                st.rerun()
+                st.experimental_rerun()
             else:
                 st.error("No cards left in deck!")
 
@@ -109,11 +115,11 @@ def main():
         if deck.discard_pile:
             card = deck.discard_pile[-1]
             st.markdown(f"### {card['name']}")
-            # st.markdown(f"### all deets: {card}")
-            if card.get('image'):
+            if card.get("image"):
                 st.image(card['image'], use_container_width=True)
             else:
                 st.info("No image available for this card.")
+
             info_col1, info_col2 = st.columns(2)
             with info_col1:
                 st.markdown(f"**Box:** {card['box']}")
@@ -129,7 +135,6 @@ def main():
         st.subheader("📋 Recent Cards")
         if deck.discard_pile:
             st.write("Recently drawn cards:")
-            # Last 5 cards, excluding most recent
             recent_cards = deck.discard_pile[-6:-1] if len(deck.discard_pile) > 1 else []
             for c in reversed(recent_cards):
                 st.write(f"• {c['name']} ({c['box']})")
