@@ -71,7 +71,7 @@ def get_shared_deck():
 
 # --- Main App ---
 def main():
-    st.title("🌿 Spirit Island Event Deck (with Images?)")
+    st.title("🌿 Spirit Island Event Deck (with Images now??)")
     st.markdown("Manage and draw shared event cards from the official Spirit Island deck.")
     st.markdown("---")
 
@@ -125,7 +125,7 @@ def main():
 
             if card.get('image'):
                 st.image(card['image'], use_column_width=True)
-                
+
             info_col1, info_col2 = st.columns(2)
             with info_col1:
                 st.markdown(f"**Box:** {card['box']}")
