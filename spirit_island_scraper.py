@@ -3,14 +3,15 @@ import random
 from typing import List, Dict
 from event_cards_data import get_event_cards
 
-# -------------------------
-# Streamlit page settings
-# -------------------------
-st.set_page_config(page_title="Spirit Island Event Deck", page_icon="🌿", layout="wide")
+# --- Streamlit Page Configuration ---
+st.set_page_config(
+    page_title="Spirit Island Event Deck (Shared)",
+    page_icon="🌿",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
-# -------------------------
-# Event Deck Class
-# -------------------------
+# --- Event Deck Logic ---
 class EventDeck:
     def __init__(self, cards: List[Dict]):
         self.original_cards = cards.copy()
@@ -25,85 +26,115 @@ class EventDeck:
         if not self.deck:
             self.reshuffle_discard()
         if self.deck:
-            card = self.deck.pop(0)
-            self.discard_pile.append(card)
-            self.current_card = card
-            return card
+            self.current_card = self.deck.pop(0)
+            return self.current_card
         return None
+
+    def discard_current_card(self):
+        if self.current_card:
+            self.discard_pile.append(self.current_card)
+            self.current_card = None
 
     def reshuffle_discard(self):
         self.deck = self.discard_pile.copy()
         self.discard_pile = []
         self.shuffle()
 
-    def reset(self):
+    def reset_deck(self):
         self.deck = self.original_cards.copy()
         self.discard_pile = []
         self.current_card = None
         self.shuffle()
 
-    def stats(self):
+    def get_deck_stats(self) -> Dict:
         return {
-            "Cards in Deck": len(self.deck),
-            "Discarded": len(self.discard_pile),
-            "Total": len(self.original_cards),
+            "cards_in_deck": len(self.deck),
+            "cards_discarded": len(self.discard_pile),
+            "total_cards": len(self.original_cards)
         }
 
-# -------------------------
-# Load and setup deck
-# -------------------------
+# --- Shared Deck for All Users ---
 @st.cache_resource
 def get_shared_deck():
-    cards = [c for c in get_event_cards() if c["status"] == "Active"]
+    """Create one shared EventDeck instance for all users"""
+    cards = [card for card in get_event_cards() if card['status'] == 'Active']
     deck = EventDeck(cards)
     deck.shuffle()
     return deck
 
-deck = get_shared_deck()
+# --- Main App ---
+def main():
+    st.title("🌿 Spirit Island Event Deck (with Images)")
+    st.markdown("Draw and manage shared event cards from the official Spirit Island deck.")
+    st.markdown("---")
 
-# -------------------------
-# UI
-# -------------------------
-st.title("🌿 Spirit Island Event Deck")
-st.markdown("Draw and view event cards with images from the official Spirit Island wiki.")
-st.markdown("---")
+    deck = get_shared_deck()
 
-# --- Draw button ---
-if st.button("🎴 Draw a Card", use_container_width=True):
-    card = deck.draw_card()
-    if card:
-        st.success(f"Drew: {card['name']}")
-    else:
-        st.error("No cards left — reshuffling discard pile.")
-        deck.reshuffle_discard()
+    # --- Sidebar Controls ---
+    st.sidebar.header("🎮 Deck Controls")
 
-# --- Show current card ---
-if deck.discard_pile:
-    card = deck.discard_pile[-1]
-    st.header(card["name"])
-    if card.get("image"):
-        st.image(card["image"], use_column_width=True)
-    else:
-        st.info("No image available.")
-    st.write(f"**Box:** {card['box']}")
-    st.write(f"**Status:** {card['status']}")
-    st.markdown(f"[View on Wiki]({card['url']})")
+    if st.sidebar.button("🔀 Shuffle Deck", use_container_width=True):
+        deck.shuffle()
+        st.sidebar.success("Deck shuffled!")
 
-# --- Deck stats ---
-st.markdown("---")
-stats = deck.stats()
-cols = st.columns(len(stats))
-for i, (k, v) in enumerate(stats.items()):
-    cols[i].metric(k, v)
+    if st.sidebar.button("🔄 Reset Deck", use_container_width=True):
+        deck.reset_deck()
+        st.sidebar.success("Deck reset!")
 
-# --- Recent cards ---
-if len(deck.discard_pile) > 1:
-    st.subheader("📋 Recently Drawn")
-    recent = deck.discard_pile[-5:-1]
-    for c in reversed(recent):
-        st.write(f"• {c['name']} ({c['box']})")
+    # Deck Stats
+    stats = deck.get_deck_stats()
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("📊 Deck Statistics")
+    st.sidebar.metric("Cards in Deck", stats["cards_in_deck"])
+    st.sidebar.metric("Cards Discarded", stats["cards_discarded"])
+    st.sidebar.metric("Total Cards", stats["total_cards"])
 
-# --- Reset button ---
-if st.button("🔄 Reset Deck", use_container_width=True):
-    deck.reset()
-    st.success("Deck reset.")
+    # Main Content
+    col1, col2 = st.columns([2, 1])
+
+    with col1:
+        st.subheader("🎴 Current Event Card")
+
+        # Draw Button in Main Area
+        if st.button("🎯 Draw & Discard Card", use_container_width=True):
+            card = deck.draw_card()
+            if card:
+                deck.discard_current_card()
+                st.success(f"Drew and discarded: {card['name']}")
+                st.rerun()
+            else:
+                st.error("No cards left in deck!")
+
+        # Show most recent card
+        if deck.discard_pile:
+            card = deck.discard_pile[-1]
+            st.markdown(f"### {card['name']}")
+            st.markdown(f"### all deets: {card}")
+            if card.get('image'):
+                st.image(card['image'], use_column_width=True)
+            else:
+                st.info("No image available for this card.")
+            info_col1, info_col2 = st.columns(2)
+            with info_col1:
+                st.markdown(f"**Box:** {card['box']}")
+            with info_col2:
+                st.markdown(f"**Status:** {card['status']}")
+            if card.get('replacement'):
+                st.markdown(f"**Replaced by:** {card['replacement']}")
+            st.markdown(f"[View on Wiki]({card['url']})")
+        else:
+            st.info("Click 'Draw & Discard Card' to draw the first event card!")
+
+    with col2:
+        st.subheader("📋 Recent Cards")
+        if deck.discard_pile:
+            st.write("Recently drawn cards:")
+            # Last 5 cards, excluding most recent
+            recent_cards = deck.discard_pile[-6:-1] if len(deck.discard_pile) > 1 else []
+            for c in reversed(recent_cards):
+                st.write(f"• {c['name']} ({c['box']})")
+        else:
+            st.write("No cards drawn yet.")
+
+if __name__ == "__main__":
+    main()
