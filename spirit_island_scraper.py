@@ -59,7 +59,7 @@ class EventDeck:
 # ----------------------
 @st.cache_data(show_spinner=False)
 def fetch_card_image(wiki_url: str, card_name: str) -> str:
-    """Fetch image URL from wiki and cache in memory"""
+    """Fetch image URL from wiki and return full https URL"""
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
                       "AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -67,12 +67,19 @@ def fetch_card_image(wiki_url: str, card_name: str) -> str:
     }
     try:
         r = requests.get(wiki_url, headers=headers, timeout=5)
-        soup = BeautifulSoup(r.content, "html.parser")
+        r.raise_for_status()
+        soup = BeautifulSoup(r.text, "html.parser")
         div = soup.find("div", class_="cardarticleimage")
-        if div and div.find("img"):
+        if div:
             img_tag = div.find("img")
-            img_url = "https://spiritislandwiki.com" + img_tag["src"]
-            return img_url
+            if img_tag:
+                src = img_tag.get("src")
+                if src.startswith("//"):
+                    return "https:" + src
+                elif src.startswith("/"):
+                    return "https://spiritislandwiki.com" + src
+                else:
+                    return src
     except Exception as e:
         st.warning(f"Failed to fetch image for {card_name}: {e}")
     return None
@@ -84,7 +91,8 @@ def fetch_card_image(wiki_url: str, card_name: str) -> str:
 def get_shared_deck():
     cards = [card for card in get_event_cards() if card['status'] == 'Active']
     for card in cards:
-        card["image"] = fetch_card_image(card["url"], card["name"])
+        if not card.get("image"):
+            card["image"] = fetch_card_image(card["url"], card["name"])
     deck = EventDeck(cards)
     deck.shuffle()
     return deck
@@ -124,7 +132,10 @@ if deck.discard_pile:
     card = deck.discard_pile[-1]
     st.markdown(f"## {card['name']}")
     if card.get("image"):
-        st.image(card["image"], use_container_width=True)
+        st.image(card["image"], use_column_width=True)
+    else:
+        st.info("No image available for this card")
+
     # Additional info
     st.write(f"**Box:** {card['box']}")
     st.write(f"**Status:** {card['status']}")
