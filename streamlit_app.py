@@ -122,6 +122,10 @@ def main():
         if deck.discard_pile:
             card = deck.discard_pile[-1]
             st.markdown(f"### {card['name']}")
+
+            if card.get('image'):
+                st.image(card['image'], use_column_width=True)
+                
             info_col1, info_col2 = st.columns(2)
             with info_col1:
                 st.markdown(f"**Box:** {card['box']}")
