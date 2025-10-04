@@ -71,7 +71,7 @@ def get_shared_deck():
 
 # --- Main App ---
 def main():
-    st.title("🌿 Spirit Island Event Deck (Shared Across All Players)")
+    st.title("🌿 Spirit Island Event Deck (with Images?)")
     st.markdown("Manage and draw shared event cards from the official Spirit Island deck.")
     st.markdown("---")
 
