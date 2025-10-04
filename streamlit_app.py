@@ -101,13 +101,13 @@ def main():
     # --- Sidebar Controls ---
     st.sidebar.header("🎮 Deck Controls")
 
-    if st.sidebar.button("🔀 Shuffle Deck", use_container_width=True):
+    if st.sidebar.button("🔀 Shuffle Deck", width='stretch'):
         deck.shuffle()
         st.session_state.last_seen_modification = deck.last_modified
         st.sidebar.success("Deck shuffled!")
         st.rerun()
 
-    if st.sidebar.button("🔄 Reset Deck", use_container_width=True):
+    if st.sidebar.button("🔄 Reset Deck", width='stretch'):
         deck.reset_deck()
         st.session_state.last_seen_modification = deck.last_modified
         st.sidebar.success("Deck reset!")
@@ -128,7 +128,7 @@ def main():
         st.subheader("🎴 Current Event Card")
 
         # Draw Button in Main Area
-        if st.button("🎯 Draw & Discard Card", use_container_width=True):
+        if st.button("🎯 Draw & Discard Card", width='stretch'):
             card = deck.draw_card()
             if card:
                 deck.discard_current_card()
@@ -143,7 +143,7 @@ def main():
             card = deck.discard_pile[-1]
             st.markdown(f"### {card['name']}")
             if card.get('image'):
-                st.image(card['image'], use_container_width=True)
+                st.image(card['image'], width='stretch')
             else:
                 st.info("No image available for this card.")
             info_col1, info_col2 = st.columns(2)
