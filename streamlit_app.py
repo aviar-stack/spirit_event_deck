@@ -67,6 +67,9 @@ def get_shared_deck():
     cards = [card for card in get_event_cards() if card['status'] == 'Active']
     deck = EventDeck(cards)
     deck.shuffle()
+    # Ensure last_modified exists for backwards compatibility
+    if not hasattr(deck, 'last_modified'):
+        deck.last_modified = time.time()
     return deck
 
 # --- Main App ---
@@ -81,17 +84,19 @@ def main():
     if 'last_seen_modification' not in st.session_state:
         st.session_state.last_seen_modification = deck.last_modified
 
-    # Check if deck was modified by another user
+    # Check if deck was modified by another user and trigger auto-refresh
     if deck.last_modified > st.session_state.last_seen_modification:
         st.session_state.last_seen_modification = deck.last_modified
         st.rerun()
 
-    # Auto-refresh every 2 seconds to check for changes
-    st_autorefresh = st.empty()
-    with st_autorefresh:
-        time.sleep(2)
+    # Auto-refresh every 2 seconds using fragment
+    @st.fragment(run_every=2)
+    def check_for_updates():
         if deck.last_modified > st.session_state.last_seen_modification:
+            st.session_state.last_seen_modification = deck.last_modified
             st.rerun()
+    
+    check_for_updates()
 
     # --- Sidebar Controls ---
     st.sidebar.header("🎮 Deck Controls")
