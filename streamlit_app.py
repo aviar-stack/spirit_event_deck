@@ -109,7 +109,7 @@ def main():
         if deck.discard_pile:
             card = deck.discard_pile[-1]
             st.markdown(f"### {card['name']}")
-            st.markdown(f"### all deets: {card}")
+            # st.markdown(f"### all deets: {card}")
             if card.get('image'):
                 st.image(card['image'], use_column_width=True)
             else:
