@@ -80,24 +80,13 @@ def main():
     # Sidebar Controls
     st.sidebar.header("🎮 Deck Controls")
 
-    col1, col2 = st.sidebar.columns(2)
-    with col1:
-        if st.button("🔀 Shuffle Deck", use_container_width=True):
-            deck.shuffle()
-            st.success("Deck shuffled!")
-
-    with col2:
-        if st.button("🎯 Draw & Discard Card", use_container_width=True):
-            card = deck.draw_card()
-            if card:
-                deck.discard_current_card()
-                st.success(f"Drew and discarded: {card['name']}")
-            else:
-                st.error("No cards left in deck!")
+    if st.sidebar.button("🔀 Shuffle Deck", use_container_width=True):
+        deck.shuffle()
+        st.sidebar.success("Deck shuffled!")
 
     if st.sidebar.button("🔄 Reset Deck", use_container_width=True):
         deck.reset_deck()
-        st.success("Deck reset!")
+        st.sidebar.success("Deck reset!")
 
     # Deck Stats
     stats = deck.get_deck_stats()
@@ -115,7 +104,21 @@ def main():
     col1, col2 = st.columns([2, 1])
 
     with col1:
-        st.subheader("🎴 Most Recent Event Card")
+        st.subheader("🎴 Current Event Card")
+
+        # --- Draw Button (main area) ---
+        draw_col1, draw_col2 = st.columns([1, 3])
+        with draw_col1:
+            if st.button("🎯 Draw & Discard Card", use_container_width=True):
+                card = deck.draw_card()
+                if card:
+                    deck.discard_current_card()
+                    st.success(f"Drew and discarded: {card['name']}")
+                    st.rerun()
+                else:
+                    st.error("No cards left in deck!")
+
+        # --- Show last drawn card ---
         if deck.discard_pile:
             card = deck.discard_pile[-1]
             st.markdown(f"### {card['name']}")
